@@ -5,8 +5,11 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/muesli/reflow/indent"
+	"github.com/muesli/reflow/wordwrap"
 )
 
 var story cyoa.Story
@@ -16,6 +19,8 @@ type model struct {
 	paragraphs []string
 	choices    []cyoa.Option
 	cursor     int
+	width      int
+	height     int
 }
 
 func initialModel() model {
@@ -24,6 +29,8 @@ func initialModel() model {
 		paragraphs: story["intro"].Paragraphs,
 		choices:    story["intro"].Options,
 		cursor:     0,
+		width:      0,
+		height:     0,
 	}
 }
 
@@ -41,25 +48,34 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursor < len(m.choices)-1 {
 				m.cursor++
 			}
-			break
 		case "up":
 			if m.cursor > 0 {
 				m.cursor--
 			}
-			break
 		case "enter":
-			// TODO
-			return m, tea.Quit
+			if len(m.choices) == 0 {
+				return m, tea.Quit
+			}
+			choice := m.choices[m.cursor]
+			nextChapter := choice.Chapter
+			m.cursor = 0
+			m.chapter = nextChapter
+			m.choices = story[nextChapter].Options
+			m.paragraphs = story[nextChapter].Paragraphs
 		}
-
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
 	}
 	return m, nil
 }
 
 func (m model) View() string {
 	s := "\n"
+	maxWidth := 80
+	displayWidth := min(maxWidth, m.width)
 	for _, paragraph := range m.paragraphs {
-		s += fmt.Sprintln(paragraph)
+		s += wordwrap.String(fmt.Sprintln(paragraph), displayWidth)
 	}
 	s += "\n"
 	for i, choice := range m.choices {
@@ -67,9 +83,17 @@ func (m model) View() string {
 		if m.cursor == i {
 			cursor = ">"
 		}
-		s += fmt.Sprintf("%s%s\n", cursor, choice.Text)
+		s += fmt.Sprintf("%s%s\n", cursor, strings.TrimLeft(indent.String(wordwrap.String(choice.Text, displayWidth-1), 1), " "))
 	}
+
 	return s
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func main() {
