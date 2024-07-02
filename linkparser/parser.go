@@ -13,17 +13,26 @@ type Link struct {
 
 func ParseHtml(input string) ([]Link, error) {
 	result := []Link{}
-	f := func(n *html.Node) {
+	var f func(*html.Node)
+	f = func(n *html.Node) {
+		if n == nil {
+			return
+		}
 		if n.Type == html.ElementNode && n.Data == "a" {
 			for _, key := range n.Attr {
 				if key.Key == "href" {
 					found := Link{
 						Href: key.Val,
-						Text: n.Data,
+						//TODO use dfs to get text
+						Text: n.Val,
 					}
 					result = append(result, found)
+					break
 				}
 			}
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			f(c)
 		}
 	}
 
@@ -31,8 +40,6 @@ func ParseHtml(input string) ([]Link, error) {
 	if err != nil {
 		panic(err)
 	}
-	for n := doc.FirstChild; n != nil; n = n.NextSibling {
-		f(n)
-	}
+	f(doc)
 	return result, nil
 }
