@@ -11,6 +11,21 @@ type Link struct {
 	Text string
 }
 
+func text(n *html.Node) string {
+	if n.Type == html.CommentNode {
+		return ""
+	}
+	result := ""
+	if n.Type == html.ElementNode {
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			result += text(c)
+		}
+	} else {
+		result += n.Data
+	}
+	return strings.Trim(result, " ")
+}
+
 func ParseHtml(input string) ([]Link, error) {
 	result := []Link{}
 	var f func(*html.Node)
@@ -24,7 +39,7 @@ func ParseHtml(input string) ([]Link, error) {
 					found := Link{
 						Href: key.Val,
 						//TODO use dfs to get text
-						Text: n.Val,
+						Text: text(n),
 					}
 					result = append(result, found)
 					break

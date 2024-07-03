@@ -9,7 +9,7 @@ import (
 var htmlContent string
 
 func init() {
-	byteContent, err := os.ReadFile("ex1.html")
+	byteContent, err := os.ReadFile("ex4.html")
 	if err != nil {
 		panic(err)
 	}
